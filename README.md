@@ -1,0 +1,2 @@
+# shadowsocks_helper
+自动部署ss客户端和ss服务器的程序
