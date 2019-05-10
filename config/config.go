@@ -2,8 +2,11 @@ package config
 
 import (
 	"math/rand"
+	"os"
 	"time"
 )
+
+const WorkDir = "/data/software"
 
 type SsConfig struct {
 	Server           string         `json:"server"`
@@ -17,10 +20,45 @@ type SsConfig struct {
 	TunnelPort       int            `json:"tunnel_port"`
 }
 
+type UpstreamServer struct {
+	Server     string `json:"server"`
+	ServerPort int    `json:"server_port"`
+	Password   string `json:"password"`
+	Weight     int    `json:"weight"`
+}
+
+type LocalConfig struct {
+	Upstream         []UpstreamServer `json:"upstream"`
+	LocalAddress     string           `json:"local_address"`
+	LocalPort        int              `json:"local_port"`
+	Method           string           `json:"method"`
+	Timeout          int              `json:"timeout"`
+	FastOpen         bool             `json:"fast_open"`
+	DnsServer        [2]string        `json:"dns_server"`
+	TunnelRemote     string           `json:"tunnel_remote"`
+	TunnelRemotePort int              `json:"tunnel_remote_port"`
+	TunnelPort       int              `json:"tunnel_port"`
+}
+
 func GetConfig() *SsConfig {
 	return &SsConfig{
 		"0.0.0.0",
 		map[int]string{},
+		"aes-256-cfb",
+		600,
+		true,
+		[2]string{"8.8.8.8", "223.5.5.5"},
+		"8.8.8.8",
+		53,
+		53,
+	}
+}
+
+func GetLocalConfig() *LocalConfig {
+	return &LocalConfig{
+		[]UpstreamServer{},
+		"0.0.0.0",
+		14213,
 		"aes-256-cfb",
 		600,
 		true,
@@ -40,4 +78,17 @@ func GetRandomPassword() string {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
+}
+
+func InitWorkDir() error {
+	if _, err := os.Stat(WorkDir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(WorkDir, os.ModePerm); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
 }

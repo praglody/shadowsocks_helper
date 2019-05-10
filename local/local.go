@@ -7,96 +7,108 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"shadowsocks_helper/config"
+	"strconv"
 )
 
 func main() {
-	// 启动 ss 服务器
-	startShadowSocksServer()
-
-	// 启动 web 服务器，供查询配置信息用
-	http.HandleFunc("/getssconfig", func(w http.ResponseWriter, req *http.Request) {
-		file, _ := os.Open("/data/software/config.json")
-		defer file.Close()
-		buffer, _ := ioutil.ReadAll(file)
-		fmt.Println(string(buffer))
-		w.Write(buffer)
-	})
-	err := http.ListenAndServe(":8090", nil)
-	if err != nil {
+	// 解析命令行参数
+	ip, port := getServerIpAndPort()
+	if ip == "" || port == 0 {
+		return
+	}
+	if err := config.InitWorkDir(); err != nil {
 		panic(err)
 	}
+	initLocalConfig(ip, port)
 }
 
-func startShadowSocksServer() {
-	var workDir = "/data/software"
-	if _, err := os.Stat(workDir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Mkdir(workDir, os.ModePerm); err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-		} else {
-			panic("文件系统错误")
+func initLocalConfig(ip string, port int) error {
+	// 获取服务器配置
+	httpClient := &http.Client{}
+	response, err := httpClient.Get(fmt.Sprintf("http://%s:%d/getssconfig", ip, port))
+	if err != nil {
+		return err
+	}
+	var configStr []byte
+	configStr, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	// 解析配置文件
+	var configObj config.SsConfig
+	err = json.Unmarshal(configStr, &configObj)
+	if err != nil {
+		return err
+	}
+
+	var localConfig = config.GetLocalConfig()
+	for k, v := range configObj.PortPassword {
+		upstream := config.UpstreamServer{
+			Weight:     1,
+			Server:     ip,
+			ServerPort: k,
+			Password:   v,
 		}
+		localConfig.Upstream = append(localConfig.Upstream, upstream)
 	}
 
-	if _, err := os.Stat(workDir + "/shadowsocks"); err != nil {
-		var cmdStr = "cd " + workDir + " && git clone https://github.com/praglody/shadowsocks.git"
-		cmd := exec.Command("/bin/bash", "-c", cmdStr)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
-		fmt.Println("代码已下载完毕，项目路径：" + workDir + "/shadowsocks")
-	} else {
-		fmt.Println("shadowsocks 程序代码存在，项目路径：" + workDir + "/shadowsocks")
-	}
+	j, _ := json.MarshalIndent(localConfig, "", "  ")
 
-	fmt.Println("开始生成配置文件...")
-
-	var configObj = config.GetConfig()
-	var listen []*net.Listener
-	for i := 0; i < 100; i++ {
-		// 获取未被使用的端口号
-		l, _ := net.Listen("tcp", "127.0.0.1:0") // listen on localhost
-		port := l.Addr().(*net.TCPAddr).Port
-		listen = append(listen, &l)
-
-		if port == 8090 {
-			i--
-			continue
-		}
-		configObj.PortPassword[port] = config.GetRandomPassword()
-	}
-	// 关闭端口监听
-	for _, l := range listen {
-		(*l).Close()
-	}
-
-	// 写入配置文件
-	j, _ := json.MarshalIndent(configObj, "", "  ")
-	var configFilePath = workDir + "/config.json"
+	var configFilePath = config.WorkDir + "/local_config.json"
 	configFile, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	configFile.Write(j)
-	configFile.Close()
+	if _, err := configFile.Write(j); err != nil {
+		return err
+	}
+	if err := configFile.Close(); err != nil {
+		return err
+	}
 
-	fmt.Println("配置文件创建成功")
+	fmt.Println(string(j))
+	return nil
+}
 
-	fmt.Println("启动ss服务器")
+func getServerIpAndPort() (string, int) {
+	var ip string
+	var port int
+	args := os.Args[1:]
 
-	killssCmd := "ps -ef|grep 'shadowsocks/server.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
-	cmd1 := exec.Command("/bin/sh", "-c", killssCmd)
-	cmd1.Stdout = os.Stdout
-	cmd1.Stderr = os.Stderr
-	cmd1.Run()
+	for i := 0; i < len(args); i++ {
+		if args[i] == "-i" {
+			if (i + 1) < len(args) {
+				i++
+				ip = args[i]
+			} else {
+				fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+				return "", 0
+			}
+		} else if args[i] == "-p" {
+			if (i + 1) < len(args) {
+				i++
+				port, _ = strconv.Atoi(args[i])
+			} else {
+				fmt.Fprint(os.Stderr, "请输入正确的端口号\n")
+				return "", 0
+			}
+		}
+	}
 
-	ssCmd := "nohup python " + workDir + "/shadowsocks/shadowsocks/server.py -c " + workDir + "/config.json >/tmp/ss.log 2>&1 &"
-	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	cmd2.Run()
+	if ip == "" {
+		fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+		return "", 0
+	} else if port < 1 || port > 65535 {
+		fmt.Fprint(os.Stderr, "请输入正确的端口号\n")
+		return "", 0
+	}
+
+	address := net.ParseIP(ip)
+	if address == nil {
+		fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+		return "", 0
+	}
+	return ip, port
 }

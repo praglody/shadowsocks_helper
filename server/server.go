@@ -38,18 +38,11 @@ func main() {
 }
 
 func startShadowSocksServer() {
-	var workDir = "/data/software"
-	if _, err := os.Stat(workDir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Mkdir(workDir, os.ModePerm); err != nil {
-				fmt.Println(err.Error())
-				return
-			}
-		} else {
-			panic("文件系统错误")
-		}
+	if err := config.InitWorkDir(); err != nil {
+		panic(err)
 	}
 
+	workDir := config.WorkDir
 	if _, err := os.Stat(workDir + "/shadowsocks"); err != nil {
 		var cmdStr = "cd " + workDir + " && git clone https://github.com/praglody/shadowsocks.git"
 		cmd := exec.Command("/bin/bash", "-c", cmdStr)
