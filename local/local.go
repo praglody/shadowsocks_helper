@@ -7,7 +7,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"shadowsocks_helper/config"
+	"shadowsocks_helper/logic"
 	"strconv"
 )
 
@@ -17,10 +19,34 @@ func main() {
 	if ip == "" || port == 0 {
 		return
 	}
-	if err := config.InitWorkDir(); err != nil {
+
+	if err := initLocalConfig(ip, port); err != nil {
 		panic(err)
 	}
-	initLocalConfig(ip, port)
+
+	if err := logic.InitWorkDir(); err != nil {
+		panic(err)
+	}
+
+	startLocalServer()
+}
+
+func startLocalServer() {
+	killSsProcess := "ps -ef|grep 'shadowsocks/local.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
+	killSsProcessCmd := exec.Command("/bin/sh", "-c", killSsProcess)
+	if err := killSsProcessCmd.Run(); err == nil {
+		fmt.Println("关闭已经启动的ss服务器")
+	}
+
+	fmt.Println("开始启动ss local")
+
+	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " + config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
+	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
+	if err := cmd2.Run(); err != nil {
+		panic(err)
+	}
 }
 
 func initLocalConfig(ip string, port int) error {

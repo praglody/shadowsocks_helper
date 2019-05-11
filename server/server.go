@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"shadowsocks_helper/config"
+	"shadowsocks_helper/logic"
 )
 
 func main() {
@@ -38,23 +39,15 @@ func main() {
 }
 
 func startShadowSocksServer() {
-	if err := config.InitWorkDir(); err != nil {
+	if err := logic.InitWorkDir(); err != nil {
+		panic(err)
+	}
+
+	if err := logic.CreateCodeFiles(); err != nil {
 		panic(err)
 	}
 
 	workDir := config.WorkDir
-	if _, err := os.Stat(workDir + "/shadowsocks"); err != nil {
-		var cmdStr = "cd " + workDir + " && git clone https://github.com/praglody/shadowsocks.git"
-		cmd := exec.Command("/bin/bash", "-c", cmdStr)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			panic(err)
-		}
-		fmt.Println("代码已下载完毕，项目路径：" + workDir + "/shadowsocks")
-	} else {
-		fmt.Println("shadowsocks 程序代码存在，项目路径：" + workDir + "/shadowsocks")
-	}
 
 	killSsProcess := "ps -ef|grep 'shadowsocks/server.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
 	killSsProcessCmd := exec.Command("/bin/sh", "-c", killSsProcess)
@@ -87,7 +80,7 @@ func startShadowSocksServer() {
 
 	// 写入配置文件
 	j, _ := json.MarshalIndent(configObj, "", "  ")
-	var configFilePath = workDir + "/config.json"
+	var configFilePath = workDir + "/server_config.json"
 	configFile, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		panic(err)
@@ -102,7 +95,7 @@ func startShadowSocksServer() {
 	fmt.Println("配置文件创建成功")
 	fmt.Println("开始启动ss服务器")
 
-	ssCmd := "nohup python " + workDir + "/shadowsocks/shadowsocks/server.py -c " + workDir + "/config.json >/tmp/ss.log 2>&1 &"
+	ssCmd := "nohup python " + workDir + "/shadowsocks/shadowsocks/server.py -c " + workDir + "/server_config.json >/tmp/ss.log 2>&1 &"
 	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr

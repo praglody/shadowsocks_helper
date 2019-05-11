@@ -2,7 +2,6 @@ package config
 
 import (
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -78,17 +77,4 @@ func GetRandomPassword() string {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
-}
-
-func InitWorkDir() error {
-	if _, err := os.Stat(WorkDir); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Mkdir(WorkDir, os.ModePerm); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	return nil
 }
