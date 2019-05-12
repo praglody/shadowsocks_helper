@@ -100,7 +100,7 @@ func initLocalConfig(ip string, port int) error {
 
 func getServerIpAndPort() (string, int) {
 	var ip string
-	var port int
+	var port string
 	args := os.Args[1:]
 
 	for i := 0; i < len(args); i++ {
@@ -112,29 +112,24 @@ func getServerIpAndPort() (string, int) {
 				fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
 				return "", 0
 			}
-		} else if args[i] == "-p" {
-			if (i + 1) < len(args) {
-				i++
-				port, _ = strconv.Atoi(args[i])
-			} else {
-				fmt.Fprint(os.Stderr, "请输入正确的端口号\n")
-				return "", 0
-			}
 		}
 	}
 
-	if ip == "" {
+	ip, port, err := net.SplitHostPort(ip)
+	if err != nil {
+		panic(err)
+	}
+
+	if address := net.ParseIP(ip); address == nil {
 		fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
-		return "", 0
-	} else if port < 1 || port > 65535 {
-		fmt.Fprint(os.Stderr, "请输入正确的端口号\n")
 		return "", 0
 	}
 
-	address := net.ParseIP(ip)
-	if address == nil {
-		fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+	portInt, err := strconv.Atoi(port)
+	if err != nil || portInt < 1 || portInt > 65535 {
+		fmt.Fprint(os.Stderr, "请输入正确的服务器端口号\n")
 		return "", 0
 	}
-	return ip, port
+
+	return ip, portInt
 }
