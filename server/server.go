@@ -18,7 +18,7 @@ func main() {
 
 	// 启动 web 服务器，供查询配置信息用
 	http.HandleFunc("/getssconfig", func(w http.ResponseWriter, req *http.Request) {
-		file, _ := os.Open("/data/software/config.json")
+		file, _ := os.Open("/data/software/server_config.json")
 		defer func() {
 			if err := file.Close(); err != nil {
 				fmt.Println(err)

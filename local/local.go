@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -20,11 +21,11 @@ func main() {
 		return
 	}
 
-	if err := initLocalConfig(ip, port); err != nil {
+	if err := logic.InitWorkDir(); err != nil {
 		panic(err)
 	}
 
-	if err := logic.InitWorkDir(); err != nil {
+	if err := initLocalConfig(ip, port); err != nil {
 		panic(err)
 	}
 
@@ -78,9 +79,21 @@ func initLocalConfig(ip string, port int) error {
 			Password:   v,
 		}
 
-		// 这里需要做服务器端口可用性检测
+		// 这里做服务器端口可用性检测
+		ipaddr := net.JoinHostPort(ip, strconv.Itoa(k))
+		if conn, err := net.Dial("tcp", ipaddr); err == nil {
+			_ = conn.Close()
+			fmt.Printf("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
+		} else {
+			fmt.Printf("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
+			continue
+		}
 
 		localConfig.Upstream = append(localConfig.Upstream, upstream)
+	}
+
+	if len(localConfig.Upstream) < 1 {
+		panic(errors.New("没有可用的服务器端口"))
 	}
 
 	j, _ := json.MarshalIndent(localConfig, "", "  ")
@@ -97,7 +110,7 @@ func initLocalConfig(ip string, port int) error {
 		return err
 	}
 
-	fmt.Println(string(j))
+	//fmt.Println(string(j))
 	return nil
 }
 
