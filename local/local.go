@@ -83,7 +83,6 @@ func initLocalConfig(ip string, port int) error {
 		ipaddr := net.JoinHostPort(ip, strconv.Itoa(k))
 		if conn, err := net.Dial("tcp", ipaddr); err == nil {
 			_ = conn.Close()
-			fmt.Printf("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
 		} else {
 			fmt.Printf("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
 			continue
