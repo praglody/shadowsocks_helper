@@ -77,6 +77,9 @@ func initLocalConfig(ip string, port int) error {
 			ServerPort: k,
 			Password:   v,
 		}
+
+		// 这里需要做服务器端口可用性检测
+
 		localConfig.Upstream = append(localConfig.Upstream, upstream)
 	}
 
