@@ -39,18 +39,21 @@ func main() {
 func handleTcpConn(conn net.Conn) {
 	defer conn.Close()
 
-	fmt.Println(conn)
-	time.Sleep(time.Second * 10)
+	var buf = make([]byte, 48)
+	c, err := conn.Read(buf)
+
+	fmt.Println(c, err)
+	time.Sleep(time.Second * 3)
 }
 
 func startWebServer() {
 	http.HandleFunc("/getssconfig", func(w http.ResponseWriter, req *http.Request) {
 		file, _ := os.Open("/data/software/server_config.json")
-		defer func() {
-			if err := file.Close(); err != nil {
+		defer func(f *os.File) {
+			if err := f.Close(); err != nil {
 				fmt.Println(err)
 			}
-		}()
+		}(file)
 
 		buffer, _ := ioutil.ReadAll(file)
 		if _, err := w.Write(buffer); err != nil {
