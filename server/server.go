@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
+	"time"
 )
 
 func main() {
@@ -17,6 +18,32 @@ func main() {
 	startShadowSocksServer()
 
 	// 启动 web 服务器，供查询配置信息用
+	go startWebServer()
+
+	// 启动tcp服务器，用于和客户端建立心跳连接
+	listen, err := net.Listen("tcp", "0.0.0.0:8091")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for {
+		conn, err := listen.Accept()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		go handleTcpConn(conn)
+	}
+}
+
+func handleTcpConn(conn net.Conn) {
+	defer conn.Close()
+
+	fmt.Println(conn)
+	time.Sleep(time.Second * 10)
+}
+
+func startWebServer() {
 	http.HandleFunc("/getssconfig", func(w http.ResponseWriter, req *http.Request) {
 		file, _ := os.Open("/data/software/server_config.json")
 		defer func() {
@@ -26,7 +53,6 @@ func main() {
 		}()
 
 		buffer, _ := ioutil.ReadAll(file)
-		fmt.Println(string(buffer))
 		if _, err := w.Write(buffer); err != nil {
 			fmt.Println(err)
 		}
@@ -34,7 +60,7 @@ func main() {
 
 	err := http.ListenAndServe(":8090", nil)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
 
@@ -65,7 +91,7 @@ func startShadowSocksServer() {
 		port := l.Addr().(*net.TCPAddr).Port
 		listen = append(listen, &l)
 
-		if port == 8090 {
+		if port == 8090 || port == 8091 {
 			i--
 			continue
 		}
