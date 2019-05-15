@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
+	"syscall"
 	"time"
 )
 
@@ -26,14 +27,17 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	for {
-		conn, err := listen.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		go handleTcpConn(conn)
-	}
+
+	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
+	//syscall.EpollCtl(fd, syscall.EPOLL_CTL_ADD, l, )
+	//for {
+	//	conn, err := listen.Accept()
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		continue
+	//	}
+	//	go handleTcpConn(conn)
+	//}
 }
 
 func handleTcpConn(conn net.Conn) {
