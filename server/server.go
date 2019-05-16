@@ -10,9 +10,10 @@ import (
 	"os/exec"
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
-	"syscall"
 	"time"
 )
+
+var connections = make(map[string]*net.Conn)
 
 func main() {
 	// 启动 ss 服务器
@@ -22,32 +23,59 @@ func main() {
 	go startWebServer()
 
 	// 启动tcp服务器，用于和客户端建立心跳连接
-	listen, err := net.Listen("tcp", "0.0.0.0:8091")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	go func() {
+		listen, err := net.Listen("tcp", "0.0.0.0:8091")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		for {
+			conn, err := listen.Accept()
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			go handleTcpConn(conn)
+		}
+	}()
 
-	fd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
-	//syscall.EpollCtl(fd, syscall.EPOLL_CTL_ADD, l, )
-	//for {
-	//	conn, err := listen.Accept()
-	//	if err != nil {
-	//		fmt.Println(err)
-	//		continue
-	//	}
-	//	go handleTcpConn(conn)
-	//}
+	for {
+		time.Sleep(time.Hour)
+	}
 }
 
 func handleTcpConn(conn net.Conn) {
-	defer conn.Close()
+	fd_s := conn.RemoteAddr().String()
+	if connections[fd_s] != nil {
+		if err := (*connections[fd_s]).Close(); err != nil {
+			panic(err)
+		}
+	}
+	connections[fd_s] = &conn
 
-	var buf = make([]byte, 48)
-	c, err := conn.Read(buf)
+	var buf = make([]byte, 12)
+	for {
+		_, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println(err.Error())
+			if err := conn.Close(); err != nil {
+				fmt.Println(err.Error())
+			}
+			// 清理连接
+			if connections[fd_s] != nil {
+				delete(connections, fd_s)
+			}
+			return
+		}
 
-	fmt.Println(c, err)
-	time.Sleep(time.Second * 3)
+		if string(buf[:4]) == "ping" {
+			if _, err := conn.Write([]byte("pong")); err != nil {
+				fmt.Println(err.Error())
+			}
+		}
+
+		time.Sleep(time.Second * 3)
+	}
 }
 
 func startWebServer() {
