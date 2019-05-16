@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -29,10 +31,55 @@ func main() {
 		panic(err)
 	}
 
-	startLocalServer()
+	if err := startLocalServer(); err != nil {
+		panic(err)
+	}
+
+	conn, err := net.Dial("tcp4", ip+":8091")
+	if err != nil {
+		panic(err)
+	}
+
+	go func(conn net.Conn) {
+		for {
+			_, err := io.WriteString(conn, "ping\r\n")
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			time.Sleep(time.Second * 100)
+		}
+		conn.Close()
+	}(conn)
+
+	var buf = make([]byte, 512)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			fmt.Println(err)
+			conn.Close()
+			break
+		}
+		if n == 512 {
+			continue
+		}
+
+		if string(buf[:7]) == "restart" {
+			// 重启客户端进程
+			if err := initLocalConfig(ip, port); err != nil {
+				fmt.Println(err)
+			}
+
+			if err := startLocalServer(); err != nil {
+				fmt.Println(err)
+			}
+		}
+
+		time.Sleep(time.Second * 3)
+	}
 }
 
-func startLocalServer() {
+func startLocalServer() error {
 	killSsProcess := "ps -ef|grep 'shadowsocks/local.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
 	killSsProcessCmd := exec.Command("/bin/sh", "-c", killSsProcess)
 	if err := killSsProcessCmd.Run(); err == nil {
@@ -45,9 +92,7 @@ func startLocalServer() {
 	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
-	if err := cmd2.Run(); err != nil {
-		panic(err)
-	}
+	return cmd2.Run()
 }
 
 func initLocalConfig(ip string, port int) error {

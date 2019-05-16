@@ -24,7 +24,7 @@ func main() {
 
 	// 启动tcp服务器，用于和客户端建立心跳连接
 	go func() {
-		listen, err := net.Listen("tcp", "0.0.0.0:8091")
+		listen, err := net.Listen("tcp4", "0.0.0.0:8091")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -40,7 +40,10 @@ func main() {
 	}()
 
 	for {
-		time.Sleep(time.Hour)
+		time.Sleep(time.Second * 500)
+		//for _,val := range connections {
+		//	io.WriteString(*val, "restart\r\n")
+		//}
 	}
 }
 
@@ -53,9 +56,9 @@ func handleTcpConn(conn net.Conn) {
 	}
 	connections[fd_s] = &conn
 
-	var buf = make([]byte, 12)
+	var buf = make([]byte, 512)
 	for {
-		_, err := conn.Read(buf)
+		n, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println(err.Error())
 			if err := conn.Close(); err != nil {
@@ -72,6 +75,10 @@ func handleTcpConn(conn net.Conn) {
 			if _, err := conn.Write([]byte("pong\r\n")); err != nil {
 				fmt.Println(err.Error())
 			}
+		}
+
+		if n == 512 {
+			continue
 		}
 
 		time.Sleep(time.Second * 3)
