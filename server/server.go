@@ -69,7 +69,7 @@ func handleTcpConn(conn net.Conn) {
 		}
 
 		if string(buf[:4]) == "ping" {
-			if _, err := conn.Write([]byte("pong")); err != nil {
+			if _, err := conn.Write([]byte("pong\r\n")); err != nil {
 				fmt.Println(err.Error())
 			}
 		}
