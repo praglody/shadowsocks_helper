@@ -88,7 +88,8 @@ func startLocalServer() error {
 
 	fmt.Println("开始启动ss local")
 
-	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " + config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
+	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " +
+		config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
 	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
