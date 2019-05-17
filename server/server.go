@@ -118,7 +118,7 @@ func startShadowSocksServer() {
 	workDir := config.WorkDir
 
 	killSsProcess := "ps -ef|grep 'shadowsocks/server.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
-	killSsProcessCmd := exec.Command("/bin/sh", "-c", killSsProcess)
+	killSsProcessCmd := exec.Command("/bin/bash", "-c", killSsProcess)
 	if err := killSsProcessCmd.Run(); err == nil {
 		fmt.Println("关闭已经启动的ss服务器")
 	}
@@ -163,8 +163,10 @@ func startShadowSocksServer() {
 	fmt.Println("配置文件创建成功")
 	fmt.Println("开始启动ss服务器")
 
-	ssCmd := "nohup python " + workDir + "/shadowsocks/shadowsocks/server.py -c " + workDir + "/server_config.json >/tmp/ss.log 2>&1 &"
-	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
+	ssCmd := "nohup python " +
+		workDir + "/shadowsocks/shadowsocks/server.py -c " +
+		workDir + "/server_config.json >/tmp/ss.log 2>&1 &"
+	cmd2 := exec.Command("/bin/bash", "-c", ssCmd)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	if err := cmd2.Run(); err != nil {

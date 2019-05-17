@@ -81,7 +81,7 @@ func main() {
 
 func startLocalServer() error {
 	killSsProcess := "ps -ef|grep 'shadowsocks/local.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
-	killSsProcessCmd := exec.Command("/bin/sh", "-c", killSsProcess)
+	killSsProcessCmd := exec.Command("/bin/bash", "-c", killSsProcess)
 	if err := killSsProcessCmd.Run(); err == nil {
 		fmt.Println("关闭已经启动的ss服务器")
 	}
@@ -90,7 +90,7 @@ func startLocalServer() error {
 
 	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " +
 		config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
-	cmd2 := exec.Command("/bin/sh", "-c", ssCmd)
+	cmd2 := exec.Command("/bin/bash", "-c", ssCmd)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	return cmd2.Run()
