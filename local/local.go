@@ -27,6 +27,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := logic.CreateCodeFiles(); err != nil {
+		panic(err)
+	}
+
 	if err := initLocalConfig(ip, port); err != nil {
 		panic(err)
 	}
