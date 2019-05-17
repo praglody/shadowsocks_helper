@@ -5,6 +5,10 @@
 
 在项目根目录运行执行 `make`
 
+清理 `make clean`
+
+交叉编译 linux 平台二进制包 `make linux_release`
+
 ## 启动
 
 服务端
