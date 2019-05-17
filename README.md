@@ -35,3 +35,10 @@ ss_server 会随机监听100个端口，配置文件会写在 `/data/software/se
 ss_local 会先去 server 端拉取配置，然后通过配置启动来做负载均衡
 
 ss_local 还会维持一个到 server 的长连接心跳
+
+## TODO
+
+- GO 守护进程
+- 信号控制
+- 完善心跳长连接
+- 使用 log 包管理日志
