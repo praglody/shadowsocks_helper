@@ -3,19 +3,31 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
+	"syscall"
 	"time"
 )
 
 var connections = make(map[string]*net.Conn)
+var configString []byte
 
 func main() {
+
+	if err := logic.InitWorkDir(); err != nil {
+		panic(err)
+	}
+
+	if err := logic.CreateCodeFiles(); err != nil {
+		panic(err)
+	}
+
 	// 启动 ss 服务器
 	startShadowSocksServer()
 
@@ -39,11 +51,23 @@ func main() {
 		}
 	}()
 
+	var c = make(chan os.Signal)
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
 	for {
-		time.Sleep(time.Second * 500)
-		//for _,val := range connections {
-		//	io.WriteString(*val, "restart\r\n")
-		//}
+		s := <-c
+		switch s {
+		case syscall.SIGUSR1, syscall.SIGUSR2:
+			fmt.Println("shadowsocks_helper signal", s)
+			startShadowSocksServer()
+			time.Sleep(time.Second * 3)
+			for _, conn := range connections {
+				io.WriteString(*conn, "restart\r\n")
+			}
+			break
+		case syscall.SIGINT, syscall.SIGTERM:
+			fmt.Println("shadowsocks_helper server exit")
+			return
+		}
 	}
 }
 
@@ -87,15 +111,15 @@ func handleTcpConn(conn net.Conn) {
 
 func startWebServer() {
 	http.HandleFunc("/getssconfig", func(w http.ResponseWriter, req *http.Request) {
-		file, _ := os.Open("/data/software/server_config.json")
-		defer func(f *os.File) {
-			if err := f.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}(file)
-
-		buffer, _ := ioutil.ReadAll(file)
-		if _, err := w.Write(buffer); err != nil {
+		//file, _ := os.Open("/data/software/server_config.json")
+		//defer func(f *os.File) {
+		//	if err := f.Close(); err != nil {
+		//		fmt.Println(err)
+		//	}
+		//}(file)
+		//
+		//buffer, _ := ioutil.ReadAll(file)
+		if _, err := w.Write(configString); err != nil {
 			fmt.Println(err)
 		}
 	})
@@ -107,14 +131,6 @@ func startWebServer() {
 }
 
 func startShadowSocksServer() {
-	if err := logic.InitWorkDir(); err != nil {
-		panic(err)
-	}
-
-	if err := logic.CreateCodeFiles(); err != nil {
-		panic(err)
-	}
-
 	workDir := config.WorkDir
 
 	killSsProcess := "ps -ef|grep 'shadowsocks/server.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
@@ -147,13 +163,13 @@ func startShadowSocksServer() {
 	}
 
 	// 写入配置文件
-	j, _ := json.MarshalIndent(configObj, "", "  ")
+	configString, _ = json.MarshalIndent(configObj, "", "  ")
 	var configFilePath = workDir + "/server_config.json"
 	configFile, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
-	if _, err := configFile.Write(j); err != nil {
+	if _, err := configFile.Write(configString); err != nil {
 		panic(err)
 	}
 	if err := configFile.Close(); err != nil {

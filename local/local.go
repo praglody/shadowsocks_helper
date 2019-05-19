@@ -69,6 +69,10 @@ func main() {
 		}
 
 		if string(buf[:7]) == "restart" {
+			fmt.Println("收到restart信号，重启本地客户端")
+
+			time.Sleep(time.Second * 3)
+
 			// 重启客户端进程
 			if err := initLocalConfig(ip, port); err != nil {
 				fmt.Println(err)
@@ -91,6 +95,7 @@ func startLocalServer() error {
 	}
 
 	fmt.Println("开始启动ss local")
+	defer fmt.Println("启动完毕 ...")
 
 	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " +
 		config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
@@ -159,7 +164,6 @@ func initLocalConfig(ip string, port int) error {
 		return err
 	}
 
-	//fmt.Println(string(j))
 	return nil
 }
 
