@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -57,19 +59,17 @@ func main() {
 		conn.Close()
 	}(conn)
 
-	var buf = make([]byte, 512)
+	r := bufio.NewReader(conn)
 	for {
-		n, err := conn.Read(buf)
+		line, err := r.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
 			conn.Close()
 			break
 		}
-		if n == 512 {
-			continue
-		}
 
-		if string(buf[:7]) == "restart" {
+		line = strings.TrimSpace(line)
+		if line == "restart" {
 			fmt.Println("收到restart信号，重启本地客户端")
 
 			time.Sleep(time.Second * 3)
