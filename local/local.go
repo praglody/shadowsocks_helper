@@ -13,6 +13,7 @@ import (
 	"shadowsocks_helper/config"
 	"shadowsocks_helper/logic"
 	"strconv"
+	"syscall"
 	"time"
 )
 
@@ -100,6 +101,8 @@ func startLocalServer() error {
 	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " +
 		config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
 	cmd2 := exec.Command("/bin/bash", "-c", ssCmd)
+	cmd2.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} //进程退出后保留子进程
+	//cmd2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}	//windows实现
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	return cmd2.Run()

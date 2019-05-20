@@ -183,6 +183,8 @@ func startShadowSocksServer() {
 		workDir + "/shadowsocks/shadowsocks/server.py -c " +
 		workDir + "/server_config.json >/tmp/ss.log 2>&1 &"
 	cmd2 := exec.Command("/bin/bash", "-c", ssCmd)
+	cmd2.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} //进程退出后保留子进程
+	//cmd2.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}	//windows实现
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	if err := cmd2.Run(); err != nil {
