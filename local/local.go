@@ -34,57 +34,64 @@ func main() {
 		panic(err)
 	}
 
-	if err := initLocalConfig(ip, port); err != nil {
-		panic(err)
-	}
-
-	if err := startLocalServer(); err != nil {
-		panic(err)
-	}
-
-	conn, err := net.Dial("tcp4", ip+":8091")
-	if err != nil {
-		panic(err)
-	}
-
-	go func(conn net.Conn) {
-		for {
-			_, err := io.WriteString(conn, "ping\r\n")
-			if err != nil {
-				fmt.Println(err)
-				break
-			}
-			time.Sleep(time.Second * 100)
-		}
-		conn.Close()
-	}(conn)
-
-	r := bufio.NewReader(conn)
 	for {
-		line, err := r.ReadString('\n')
+		conn, err := net.Dial("tcp4", ip+":8091")
 		if err != nil {
 			fmt.Println(err)
-			conn.Close()
-			break
+			time.Sleep(time.Second * 30)
+			continue
 		}
 
-		line = strings.TrimSpace(line)
-		if line == "restart" {
-			fmt.Println("收到restart信号，重启本地客户端")
-
-			time.Sleep(time.Second * 3)
-
-			// 重启客户端进程
+		go func() {
 			if err := initLocalConfig(ip, port); err != nil {
-				fmt.Println(err)
+				panic(err)
 			}
 
 			if err := startLocalServer(); err != nil {
-				fmt.Println(err)
+				panic(err)
 			}
-		}
+		}()
 
-		time.Sleep(time.Second * 3)
+		go func() {
+			for {
+				_, err := io.WriteString(conn, "ping\r\n")
+				if err != nil {
+					fmt.Println(err)
+					conn.Close()
+					break
+				}
+				time.Sleep(time.Second * 100)
+			}
+		}()
+
+		r := bufio.NewReader(conn)
+		for {
+			line, err := r.ReadString('\n')
+			if err != nil {
+				fmt.Println(err)
+				conn.Close()
+				break
+			}
+
+			line = strings.TrimSpace(line)
+			if line == "restart" {
+				fmt.Println("收到restart信号，重启本地客户端")
+
+				time.Sleep(time.Second * 3)
+
+				// 重启客户端进程
+				if err := initLocalConfig(ip, port); err != nil {
+					fmt.Println(err)
+				}
+
+				if err := startLocalServer(); err != nil {
+					fmt.Println(err)
+				}
+			}
+
+			time.Sleep(time.Second * 3)
+		}
+		time.Sleep(time.Second * 30)
 	}
 }
 
