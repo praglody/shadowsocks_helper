@@ -1,10 +1,10 @@
 package logic
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"shadowsocks_helper/config"
+	"shadowsocks_helper/library/slog"
 )
 
 func CreateCodeFiles() error {
@@ -17,9 +17,9 @@ func CreateCodeFiles() error {
 		if err := cmd.Run(); err != nil {
 			return err
 		}
-		fmt.Println("代码已下载完毕，项目路径：" + workDir + "/shadowsocks")
+		slog.Info("代码已下载完毕，项目路径：" + workDir + "/shadowsocks")
 	} else {
-		fmt.Println("shadowsocks 程序代码存在，项目路径：" + workDir + "/shadowsocks")
+		slog.Info("shadowsocks 程序代码存在，项目路径：" + workDir + "/shadowsocks")
 	}
 	return nil
 }

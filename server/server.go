@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"shadowsocks_helper/config"
+	"shadowsocks_helper/library/slog"
 	"shadowsocks_helper/logic"
 	"syscall"
 	"time"
@@ -21,11 +21,11 @@ var configString []byte
 func main() {
 
 	if err := logic.InitWorkDir(); err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 
 	if err := logic.CreateCodeFiles(); err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 
 	// 启动 ss 服务器
@@ -38,13 +38,13 @@ func main() {
 	go func() {
 		listen, err := net.Listen("tcp4", "0.0.0.0:8091")
 		if err != nil {
-			fmt.Println(err)
+			slog.Info(err)
 			return
 		}
 		for {
 			conn, err := listen.Accept()
 			if err != nil {
-				fmt.Println(err)
+				slog.Info(err)
 				continue
 			}
 			go handleTcpConn(conn)
@@ -57,15 +57,17 @@ func main() {
 		s := <-c
 		switch s {
 		case syscall.SIGUSR1, syscall.SIGUSR2:
-			fmt.Println("shadowsocks_helper signal", s)
+			slog.Info("shadowsocks_helper signal", s)
 			startShadowSocksServer()
 			time.Sleep(time.Second * 3)
 			for _, conn := range connections {
-				io.WriteString(*conn, "restart\r\n")
+				if _, err := io.WriteString(*conn, "restart\r\n"); err != nil {
+					slog.Error(err)
+				}
 			}
 			break
 		case syscall.SIGINT, syscall.SIGTERM:
-			fmt.Println("shadowsocks_helper server exit")
+			slog.Info("shadowsocks_helper server exit")
 			return
 		}
 	}
@@ -75,7 +77,7 @@ func handleTcpConn(conn net.Conn) {
 	fd_s := conn.RemoteAddr().String()
 	if connections[fd_s] != nil {
 		if err := (*connections[fd_s]).Close(); err != nil {
-			panic(err)
+			slog.Error(err)
 		}
 	}
 	connections[fd_s] = &conn
@@ -84,9 +86,9 @@ func handleTcpConn(conn net.Conn) {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println(err.Error())
+			slog.Info(err.Error())
 			if err := conn.Close(); err != nil {
-				fmt.Println(err.Error())
+				slog.Error(err.Error())
 			}
 			// 清理连接
 			if connections[fd_s] != nil {
@@ -97,7 +99,7 @@ func handleTcpConn(conn net.Conn) {
 
 		if string(buf[:4]) == "ping" {
 			if _, err := conn.Write([]byte("pong\r\n")); err != nil {
-				fmt.Println(err.Error())
+				slog.Error(err.Error())
 			}
 		}
 
@@ -120,13 +122,13 @@ func startWebServer() {
 		//
 		//buffer, _ := ioutil.ReadAll(file)
 		if _, err := w.Write(configString); err != nil {
-			fmt.Println(err)
+			slog.Error(err)
 		}
 	})
 
 	err := http.ListenAndServe(":8090", nil)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error(err)
 	}
 }
 
@@ -136,10 +138,10 @@ func startShadowSocksServer() {
 	killSsProcess := "ps -ef|grep 'shadowsocks/server.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
 	killSsProcessCmd := exec.Command("/bin/bash", "-c", killSsProcess)
 	if err := killSsProcessCmd.Run(); err == nil {
-		fmt.Println("关闭已经启动的ss服务器")
+		slog.Info("关闭已经启动的ss服务器")
 	}
 
-	fmt.Println("开始生成配置文件...")
+	slog.Info("开始生成配置文件...")
 
 	var configObj = config.GetConfig()
 	var listen []*net.Listener
@@ -158,7 +160,7 @@ func startShadowSocksServer() {
 	// 关闭端口监听
 	for _, l := range listen {
 		if err := (*l).Close(); err != nil {
-			panic(err)
+			slog.Error(err)
 		}
 	}
 
@@ -167,17 +169,17 @@ func startShadowSocksServer() {
 	var configFilePath = workDir + "/server_config.json"
 	configFile, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 	if _, err := configFile.Write(configString); err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 	if err := configFile.Close(); err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 
-	fmt.Println("配置文件创建成功")
-	fmt.Println("开始启动ss服务器")
+	slog.Info("配置文件创建成功")
+	slog.Info("开始启动ss服务器")
 
 	ssCmd := "nohup python " +
 		workDir + "/shadowsocks/shadowsocks/server.py -c " +
@@ -188,6 +190,6 @@ func startShadowSocksServer() {
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	if err := cmd2.Run(); err != nil {
-		panic(err)
+		slog.Panic(err)
 	}
 }
