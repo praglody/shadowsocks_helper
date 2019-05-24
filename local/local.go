@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"shadowsocks_helper/config"
+	"shadowsocks_helper/library/slog"
 	"shadowsocks_helper/logic"
 	"strconv"
 	"strings"
@@ -37,18 +37,18 @@ func main() {
 	for {
 		conn, err := net.Dial("tcp4", ip+":8091")
 		if err != nil {
-			fmt.Println(err)
+			slog.Info(err)
 			time.Sleep(time.Second * 30)
 			continue
 		}
 
 		go func() {
 			if err := initLocalConfig(ip, port); err != nil {
-				panic(err)
+				slog.Panic(err)
 			}
 
 			if err := startLocalServer(); err != nil {
-				panic(err)
+				slog.Panic(err)
 			}
 		}()
 
@@ -56,7 +56,7 @@ func main() {
 			for {
 				_, err := io.WriteString(conn, "ping\r\n")
 				if err != nil {
-					fmt.Println(err)
+					slog.Info(err)
 					conn.Close()
 					break
 				}
@@ -68,24 +68,24 @@ func main() {
 		for {
 			line, err := r.ReadString('\n')
 			if err != nil {
-				fmt.Println(err)
+				slog.Info(err)
 				conn.Close()
 				break
 			}
 
 			line = strings.TrimSpace(line)
 			if line == "restart" {
-				fmt.Println("收到restart信号，重启本地客户端")
+				slog.Info("收到restart信号，重启本地客户端")
 
 				time.Sleep(time.Second * 3)
 
 				// 重启客户端进程
 				if err := initLocalConfig(ip, port); err != nil {
-					fmt.Println(err)
+					slog.Info(err)
 				}
 
 				if err := startLocalServer(); err != nil {
-					fmt.Println(err)
+					slog.Info(err)
 				}
 			}
 
@@ -99,11 +99,11 @@ func startLocalServer() error {
 	killSsProcess := "ps -ef|grep 'shadowsocks/local.py -c'|grep -v grep|awk '{print $2}'|xargs kill"
 	killSsProcessCmd := exec.Command("/bin/bash", "-c", killSsProcess)
 	if err := killSsProcessCmd.Run(); err == nil {
-		fmt.Println("关闭已经启动的ss服务器")
+		slog.Info("关闭已经启动的ss服务器")
 	}
 
-	fmt.Println("开始启动ss local")
-	defer fmt.Println("启动完毕 ...")
+	slog.Info("开始启动ss local")
+	defer slog.Info("启动完毕 ...")
 
 	ssCmd := "nohup python " + config.WorkDir + "/shadowsocks/shadowsocks/local.py -c " +
 		config.WorkDir + "/local_config.json >/tmp/ss.log 2>&1 &"
@@ -149,7 +149,7 @@ func initLocalConfig(ip string, port int) error {
 		if conn, err := net.Dial("tcp", ipaddr); err == nil {
 			_ = conn.Close()
 		} else {
-			fmt.Printf("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
+			slog.Infof("服务器端口 %s 不可用，已自动摘除\n", ipaddr)
 			continue
 		}
 
@@ -157,7 +157,7 @@ func initLocalConfig(ip string, port int) error {
 	}
 
 	if len(localConfig.Upstream) < 1 {
-		panic(errors.New("没有可用的服务器端口"))
+		slog.Panic("没有可用的服务器端口")
 	}
 
 	j, _ := json.MarshalIndent(localConfig, "", "  ")
@@ -188,9 +188,11 @@ func getServerIpAndPort() (string, int) {
 				i++
 				ip = args[i]
 			} else {
-				fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+				slog.Panic("请输入正确的服务器IP")
 				return "", 0
 			}
+		} else if args[i] == "-v" {
+			slog.LogLevel = slog.LOG_DEBUG
 		}
 	}
 
@@ -200,13 +202,13 @@ func getServerIpAndPort() (string, int) {
 	}
 
 	if address := net.ParseIP(ip); address == nil {
-		fmt.Fprint(os.Stderr, "请输入正确的服务器IP\n")
+		slog.Panic("请输入正确的服务器IP")
 		return "", 0
 	}
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil || portInt < 1 || portInt > 65535 {
-		fmt.Fprint(os.Stderr, "请输入正确的服务器端口号\n")
+		slog.Panic("请输入正确的服务器端口号")
 		return "", 0
 	}
 
