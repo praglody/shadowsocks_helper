@@ -17,7 +17,6 @@
 
 客户端
 
-``
 `nohup ./ss_local -i [serverip]:8090 >/tmp/ss_local.log 2>&1 &`
 
 
