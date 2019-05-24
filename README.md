@@ -3,21 +3,22 @@
 
 ## 编译
 
-在项目根目录运行执行 `make`
+在项目根目录运行执行 `make`，会在根目录生成 `ss_server` 和 `ss_local` 两个二进制文件
 
-清理 `make clean`
+清理已编译生成的文件： `make clean`
 
-交叉编译 linux 平台二进制包 `make linux_release`
+在 mac 平台交叉编译 linux 平台二进制包：`make linux_release`
 
 ## 启动
 
 服务端
 
-`./ss_server`
+`nohup ./ss_server >/tmp/ss_server.log 2>&1 &`
 
 客户端
 
-`./ss_local -i [serverip]:8090`
+``
+`nohup ./ss_local -i [serverip]:8090 >/tmp/ss_local.log 2>&1 &`
 
 
 ## More
