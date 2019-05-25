@@ -21,11 +21,11 @@ var configString []byte
 func main() {
 
 	if err := logic.InitWorkDir(); err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 
 	if err := logic.CreateCodeFiles(); err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 
 	// 启动 ss 服务器
@@ -169,13 +169,13 @@ func startShadowSocksServer() {
 	var configFilePath = workDir + "/server_config.json"
 	configFile, err := os.OpenFile(configFilePath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 	if _, err := configFile.Write(configString); err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 	if err := configFile.Close(); err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 
 	slog.Info("配置文件创建成功")
@@ -190,6 +190,6 @@ func startShadowSocksServer() {
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
 	if err := cmd2.Run(); err != nil {
-		slog.Panic(err)
+		slog.Emergency(err)
 	}
 }

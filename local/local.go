@@ -44,11 +44,11 @@ func main() {
 
 		go func() {
 			if err := initLocalConfig(ip, port); err != nil {
-				slog.Panic(err)
+				slog.Emergency(err)
 			}
 
 			if err := startLocalServer(); err != nil {
-				slog.Panic(err)
+				slog.Emergency(err)
 			}
 		}()
 
@@ -157,7 +157,7 @@ func initLocalConfig(ip string, port int) error {
 	}
 
 	if len(localConfig.Upstream) < 1 {
-		slog.Panic("没有可用的服务器端口")
+		slog.Emergency("没有可用的服务器端口")
 	}
 
 	j, _ := json.MarshalIndent(localConfig, "", "  ")
@@ -188,7 +188,7 @@ func getServerIpAndPort() (string, int) {
 				i++
 				ip = args[i]
 			} else {
-				slog.Panic("请输入正确的服务器IP")
+				slog.Emergency("请输入正确的服务器IP")
 				return "", 0
 			}
 		} else if args[i] == "-v" {
@@ -202,13 +202,13 @@ func getServerIpAndPort() (string, int) {
 	}
 
 	if address := net.ParseIP(ip); address == nil {
-		slog.Panic("请输入正确的服务器IP")
+		slog.Emergency("请输入正确的服务器IP")
 		return "", 0
 	}
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil || portInt < 1 || portInt > 65535 {
-		slog.Panic("请输入正确的服务器端口号")
+		slog.Emergency("请输入正确的服务器端口号")
 		return "", 0
 	}
 

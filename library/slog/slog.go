@@ -17,49 +17,81 @@ const (
 var LogLevel = LOG_INFO
 
 func Debug(v ...interface{}) {
-	if LogLevel >= LOG_DEBUG {
+	if LogLevel <= LOG_DEBUG {
 		log.Println(v)
 	}
 }
 
 func Debugf(format string, v ...interface{}) {
-	if LogLevel >= LOG_DEBUG {
+	if LogLevel <= LOG_DEBUG {
 		log.Printf(format, v)
 	}
 }
 
 func Verbose(v ...interface{}) {
-	if LogLevel >= LOG_VERBOSE {
+	if LogLevel <= LOG_VERBOSE {
 		log.Println(v)
 	}
 }
 
 func Verbosef(format string, v ...interface{}) {
-	if LogLevel >= LOG_VERBOSE {
+	if LogLevel <= LOG_VERBOSE {
 		log.Printf(format, v)
 	}
 }
 
 func Info(v ...interface{}) {
-	log.Println(v)
+	if LogLevel <= LOG_INFO {
+		log.Println(v)
+	}
 }
 
 func Infof(format string, v ...interface{}) {
-	log.Printf(format, v)
+	if LogLevel <= LOG_INFO {
+		log.Printf(format, v)
+	}
+}
+
+func Notice(v ...interface{}) {
+	if LogLevel <= LOG_NOTICE {
+		log.Println(v)
+	}
+}
+
+func Noticef(format string, v ...interface{}) {
+	if LogLevel <= LOG_NOTICE {
+		log.Printf(format, v)
+	}
+}
+
+func Warning(v ...interface{}) {
+	if LogLevel <= LOG_INFO {
+		log.Println(v)
+	}
+}
+
+func Warningf(format string, v ...interface{}) {
+	if LogLevel <= LOG_INFO {
+		log.Printf(format, v)
+	}
 }
 
 func Error(v ...interface{}) {
-	log.Println(v)
+	if LogLevel <= LOG_ERROR {
+		log.Println(v)
+	}
 }
 
 func Errorf(format string, v ...interface{}) {
-	log.Printf(format, v)
+	if LogLevel <= LOG_ERROR {
+		log.Println(v)
+	}
 }
 
-func Panic(v ...interface{}) {
+func Emergency(v ...interface{}) {
 	log.Panicln(v)
 }
 
-func Panicf(format string, v ...interface{}) {
+func Emergencyf(format string, v ...interface{}) {
 	log.Panicf(format, v)
 }
