@@ -35,7 +35,7 @@ func Verbose(v ...interface{}) {
 }
 
 func Verbosef(format string, v ...interface{}) {
-	if LogLevel <= LOG_VERBOSE {
+	if LogLevel >= LOG_VERBOSE {
 		log.Printf(format, v)
 	}
 }
