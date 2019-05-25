@@ -3,7 +3,8 @@ package slog
 import "log"
 
 const (
-	LOG_DEBUG = 1 << iota
+	LOG_DEBUG uint8 = 1 << iota
+	LOG_VERBOSE
 	LOG_INFO
 	LOG_NOTICE
 	LOG_WARNING
@@ -13,16 +14,28 @@ const (
 	LOG_EMERGENCY
 )
 
-var LogLevel int8 = LOG_INFO
+var LogLevel = LOG_INFO
 
 func Debug(v ...interface{}) {
-	if LogLevel <= LOG_DEBUG {
+	if LogLevel >= LOG_DEBUG {
 		log.Println(v)
 	}
 }
 
 func Debugf(format string, v ...interface{}) {
-	if LogLevel <= LOG_DEBUG {
+	if LogLevel >= LOG_DEBUG {
+		log.Printf(format, v)
+	}
+}
+
+func Verbose(v ...interface{}) {
+	if LogLevel >= LOG_VERBOSE {
+		log.Println(v)
+	}
+}
+
+func Verbosef(format string, v ...interface{}) {
+	if LogLevel <= LOG_VERBOSE {
 		log.Printf(format, v)
 	}
 }
