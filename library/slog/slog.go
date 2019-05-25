@@ -3,14 +3,14 @@ package slog
 import "log"
 
 const (
-	LOG_EMERGENCY = 1 << 7
-	LOG_ALERT     = 1 << 6
-	LOG_CRITICAL  = 1 << 5
-	LOG_ERROR     = 1 << 4
-	LOG_WARNING   = 1 << 3
-	LOG_NOTICE    = 1 << 2
-	LOG_INFO      = 1 << 1
-	LOG_DEBUG     = 1 << 0
+	LOG_DEBUG = 1 << iota
+	LOG_INFO
+	LOG_NOTICE
+	LOG_WARNING
+	LOG_ERROR
+	LOG_CRITICAL
+	LOG_ALERT
+	LOG_EMERGENCY
 )
 
 var LogLevel int8 = LOG_INFO
