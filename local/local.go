@@ -53,6 +53,7 @@ func main() {
 		}()
 
 		go func() {
+			ticker := time.NewTicker(100 * time.Second)
 			for {
 				_, err := io.WriteString(conn, "ping\r\n")
 				if err != nil {
@@ -60,8 +61,9 @@ func main() {
 					conn.Close()
 					break
 				}
-				time.Sleep(time.Second * 100)
+				<-ticker.C
 			}
+			ticker.Stop()
 		}()
 
 		r := bufio.NewReader(conn)
@@ -77,7 +79,7 @@ func main() {
 			if line == "restart" {
 				slog.Info("收到restart信号，重启本地客户端")
 
-				time.Sleep(time.Second * 3)
+				<-time.After(time.Second * 3)
 
 				// 重启客户端进程
 				if err := initLocalConfig(ip, port); err != nil {
@@ -89,9 +91,9 @@ func main() {
 				}
 			}
 
-			time.Sleep(time.Second * 3)
+			<-time.After(time.Second * 3)
 		}
-		time.Sleep(time.Second * 30)
+		<-time.After(time.Second * 30)
 	}
 }
 
