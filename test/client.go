@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "192.168.31.177:14213")
+	conn, err := net.Dial("tcp", "127.0.0.1:14213")
 	if err != nil {
 		slog.Emergency(err)
 	}
