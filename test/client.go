@@ -20,7 +20,7 @@ func main() {
 	}
 	var resp = make([]byte, 2)
 	n, err = conn.Read(resp)
-	if err != nil {
+	if err == nil {
 		slog.Info("server resp: %v", resp)
 	} else {
 		slog.Emergency("Read resp error: %v", err)
@@ -35,7 +35,7 @@ func main() {
 
 	var resp2 = make([]byte, 10)
 	n, err = conn.Read(resp2)
-	if err != nil {
+	if err == nil {
 		slog.Info("server resp: %v", resp2)
 	} else {
 		slog.Emergency("Read resp2 error: %v", err)
