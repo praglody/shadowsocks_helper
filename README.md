@@ -1,3 +1,7 @@
+# Ss 已不推荐使用，大家可以用 v2ray 或者 trojan 代替
+
+# 想入门网络编程的倒是可以看看 Ss 源码
+
 # shadowsocks_helper
 自动部署ss客户端和ss服务器的程序，可以做到运行本程序自动部署和运行 ss。
 
